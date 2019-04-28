@@ -142,21 +142,23 @@ class App(ShowBase):
         #I think the crate uses 2 textures - a diffuse(color) texture and a normal (bump) texture
         #let's just see what textures the crates have and change the textures if we find anything worth changing
         #we will be using some enums defined near the top
-        #you can use substitute FT_MIPMAP for p3d.SamplerState.FT_linear_mipmap_linear
+        #you can use p3d.SamplerState.FT_linear_mipmap_linear in place of FT_MIPMAP
         #but first - load new textures
         new_diffuse_tex=self.loader.load_texture('models/texture/crate_2.png')
         #loader uses some reasonable defaults, but let's play with the filter type a
         new_diffuse_tex.set_minfilter(FT_MIPMAP)
         new_diffuse_tex.set_magfilter(FT_LINEAR)
         #same for normal map, but pass the filter types as arguments
+        #both give the same result, use what you prefer
         new_normal_tex=self.loader.load_texture('models/texture/crate_2_ng.png',
                                                 minfilter = FT_MIPMAP,
                                                 magfilter = FT_LINEAR)
         #change the textures only on the last two crates
         for crate in self.crates[-2:]:
             #model have textures in texture stages
+            #so we iterate over all the texture stages of the model
             for tex_stage in crate.find_all_texture_stages():
-                if crate.find_texture(tex_stage):#test if there is a texture to override
+                if crate.find_texture(tex_stage):#test if there is any texture to override
                     #texture stages have mods
                     if tex_stage.get_mode() in (TS_NORMAL, TS_NORMAL_GLOSS):
                         #we found ourself a normal map - replace!
@@ -178,20 +180,32 @@ class App(ShowBase):
         #by default the camera can be moved and rotated using the mouse,
         # we'll disable that mouse-look, using the worst named function ever:
         self.disable_mouse() #<- this disables the camera mouse control not the mouse!
-        #now we can place the camera in a good spot, say at x=-14, y=-3, z=5
-        self.camera.set_pos(-6.8708, -4.59957, 4.77564)
+        #now we can place the camera in a good spot,
+        self.camera.set_pos(-7.0, -4.5, 4.5)
         #we could use self.camera.set_hpr() to orient the camera, but it's
         #simpler to just point it at one of the crates, (or a point in space)
         self.camera.look_at(self.crates[4])
         #lets also change the field of view (FOV) for the camera
-        lens=self.cam.node().get_lens()
-        fov=lens.get_fov()
-        lens.set_fov(fov*1.5)
+        #ShowBase already has a reference to the default lens used by the default camera
+        # that lens is available under the name base.camLens or self.camLens
+        #that name uses the old camelCase naming convention and we want to avoid that
+        #Let's get the lens from the default camera
+        # here's the catch - the *actual* camera is *not* self.camera (or base.camera)
+        # self.camera is a extra node (NodePath class) that has the camera (Camera class)
+        # ...well, kind of, the camera is also wrapped in a NodePath, hence the .node() call
+        # ShowBase keeps a this under the name self.cam
+        self.cam_lens=self.cam.node().get_lens()
+        #the fov may change with the size of the window,
+        #we'll just increase it to 125% of what it was (both horizontal and vertical)
+        fov=self.cam_lens.get_fov()
+        self.cam_lens.set_fov(fov*1.25)
 
         #Lights
         #first we need an ambient light, else everything not illuminated will be black
         self.ambient_light = self.render.attach_new_node(p3d.AmbientLight('ambient'))
+        #remember the use of .node() from earlier?
         self.ambient_light.node().set_color((0.1, 0.1, 0.1, 1.0))
+        #tell Panda3D to actually use this light for anything parented to render
         self.render.set_light(self.ambient_light)
         #next a directional light
         self.dir_light = self.render.attach_new_node(p3d.DirectionalLight('directional'))
@@ -203,21 +217,31 @@ class App(ShowBase):
         light_from_back= 0.4 # the light is a bit from the back
         light_from_bottom= -1.0 #the light is coming from the top
         light_vec=p3d.Vec3(light_from_left,light_from_back,light_from_bottom)
-        light_vec.normalize()
+        light_vec.normalize() #<- not needed, but it won't hurt
         self.dir_light.node().set_direction(light_vec)
         self.render.set_light(self.dir_light)
         #last we add a spotlight, just for shadows
         self.spot_light = self.render.attach_new_node(p3d.Spotlight('spot'))
         self.spot_light.node().set_color((1.0, 1.0, 1.0, 1.0))
+        #make a light cast shadows, and set the shadow map resolution to 1024x1024
         self.spot_light.node().set_shadow_caster(True, 1024, 1024)
-        self.spot_light.node().get_lens().set_near_far(1, 20.0)
+        #to get a good resolution for the shadow depth map
+        #you need to fit the near and far planes of the light (lense)
+        #the more precise the bounds, the better the shadow quality
+        self.spot_light.node().get_lens().set_near_far(0.1, 20.0)
+        #let's set the light cone to be narrower
         self.spot_light.node().get_lens().set_fov(25)
+        #and also to have a smoother falloff
         self.spot_light.node().set_exponent(120.0)
+        #spotlights unlike ambient and directional lights need to be
+        # placed and oriented in the scene
         self.spot_light.set_pos(-8, 0, 8)
         self.spot_light.look_at(self.crates[3])
         self.render.set_light(self.spot_light)
 
-        #enable the shader generator
+        #enable the shader generator,
+        # it creates Cg shaders for per pixel lights and shadows
+        #it's an older code but it checks out
         self.render.set_shader_auto()
         #enable MSAA
         self.render.set_antialias(p3d.AntialiasAttrib.M_multisample)
