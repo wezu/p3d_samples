@@ -16,6 +16,16 @@ This sample shows how to:
 # from panda3d.core import *
 # but star imports are un-pythonic -_-'
 import panda3d.core as p3d
+
+#'direct' is the part of Panda3D written in Python ('core' is C++ with Python bindings)
+# ShowBase is a singelton class that will setup a window, task manager, and all the
+# other, common things that you may (or may not) want to use.
+# You don't need to use it, but you'll probably want to use or use it even if you don't want to.
+# It also installs itself and a bunch of other things into builtins, so that
+# key objects (like the 'render' node) are accessible anywhere in your code,
+# in these samples I will try not to use these, because again - un-pythonic -_-'
+from direct.showbase.ShowBase import ShowBase
+
 #to save some space and keyboard wear and tear, we'll add some things under shorter name
 FT_MIPMAP = p3d.SamplerState.FT_linear_mipmap_linear
 FT_LINEAR = p3d.SamplerState.FT_linear
@@ -40,14 +50,7 @@ p3d.load_prc_file_data('', 'sync-video 0')
 p3d.load_prc_file_data('', 'window-title Panda3D - Hello World')
 #full list of options is here: https://www.panda3d.org/manual/?title=List_of_All_Config_Variables
 
-#'direct' is the part of Panda3D written in Python ('core' is C++ with Python bindings)
-# ShowBase is a singelton class that will setup a window, task manager, and all the
-# other, common things that you may (or may not) want to use.
-# You don't need to use it, but you'll probably want to use or use it even if you don't want to.
-# It also installs itself and a bunch of other things into builtins, so that
-# key objects (like the 'render' node) are accessible anywhere in your code,
-# in these samples I will try not to use these, because again - un-pythonic -_-'
-from direct.showbase.ShowBase import ShowBase
+
 
 
 
@@ -59,7 +62,7 @@ class App(ShowBase):
         #but a better solution is to use Python 3.x,
         #Here's a link, go ahead, download it, I'm not going anywhere...
         # https://www.python.org/downloads/
-        super().__init__(self)
+        super().__init__()
 
         #by default the background is a dull grey, let's make it black
         #colors in Panda3D usually are red, green, blue and alpha values
