@@ -7,8 +7,10 @@ may be a better choice because the buffer may be limited to 65536 texels.
 We're rendering 'only' ~21.5k instances of the grass so there should be no problems.
 '''
 import panda3d.core as p3d
-p3d.load_prc_file_data('', 'framebuffer-srgb 1')
-p3d.load_prc_file_data('', 'multisamples 1')
+p3d.load_prc_file_data('', '''framebuffer-srgb 1
+                              sync-video 0
+                              show-frame-rate-meter 1
+                              multisamples 1''')
 from direct.showbase.ShowBase import ShowBase
 
 from operator import itemgetter
@@ -97,8 +99,10 @@ class App(ShowBase):
                     grass_model.set_texture(tex_stage, tex, 1)
         grass_model.set_shader(p3d.Shader.load(GLSL, 'shaders/grass_v.glsl', 'shaders/grass_f.glsl'), 1)
         grass_model.set_shader_input('grass_buf_tex', grass_buf_tex)
+        grass_model.set_shader_input('clip_distance', 125.0)
         grass_model.set_instance_count(len(grass_list))
         grass_model.reparent_to(self.render)
+        grass_model.set_transparency(p3d.TransparencyAttrib.M_none, 1)
         #set the bounds so it stays visible
         grass_model.node().set_bounds( p3d.BoundingBox( (0,0,0), max( grass_list,key=itemgetter(1) ) ) )
         grass_model.node().set_final(1)
