@@ -101,26 +101,26 @@ class App(ShowBase):
             self.crates.append(crate_model.copy_to(self.render))'''
 
         ''' Now we have the crates all in one place, overlapping - that's no good
-        #let's put crate #1 on top of create #0, and twist it a bit
-        #the crates are 1x1x1 cubes with the pivot cantered at the bottom,
-        #so placing them is easy
-        # Panda3D uses a Z-up coordinate system (by default)
-        #
-        #   Z     Y
-        #    |  /
-        #    | /
-        #    |/____
-        #           X
-        # X is right --->
-        #
-        #               /\
-        #               /
-        # Y is forward /
-        #
-        #         ^
-        #         |
-        # Z is up |
-        #'''
+        let's put crate #1 on top of create #0, and twist it a bit
+        the crates are 1x1x1 cubes with the pivot cantered at the bottom,
+        so placing them is easy
+        Panda3D uses a Z-up coordinate system (by default)
+
+           Z     Y
+            |  /
+            | /
+            |/____
+                   X
+         X is right --->
+
+                       /\
+                       /
+         Y is forward /
+
+                 ^
+                 |
+         Z is up |
+        '''
         # First move it up
         self.crates[1].set_pos(0,0,1)
         ''' HPR stands for Heading, Pitch, Roll
