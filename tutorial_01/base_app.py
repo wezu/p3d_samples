@@ -27,9 +27,9 @@ M_MSAA= p3d.AntialiasAttrib.M_multisample
 class BaseApp(ShowBase):
     def __init__(self):
         super().__init__()
-        #we are running from a sub directory
-        #but we still want to load the models/textures without the extra '../'
-        #so we put the up directory on the model path
+        # we are running from a sub directory
+        # but we still want to load the models/textures without the extra '../'
+        # so we put the up directory on the model path
         p3d.get_model_path().append_directory('..')
 
         self.disable_mouse()
@@ -45,16 +45,16 @@ class BaseApp(ShowBase):
 
     def setup_lights(self):
         '''Adds lights to the scene '''
-        #ambient
+        # ambient
         self.ambient_light = self.render.attach_new_node(p3d.AmbientLight('ambient'))
         self.ambient_light.node().set_color((0.1, 0.1, 0.1, 1.0))
         self.render.set_light(self.ambient_light)
-        #directional
+        # directional
         self.dir_light = self.render.attach_new_node(p3d.DirectionalLight('directional'))
         self.dir_light.node().set_color((0.1, 0.1, 0.25, 1.0))
         self.dir_light.node().set_direction(p3d.Vec3(0.2,0.4,-1.0))
         self.render.set_light(self.dir_light)
-        #spot
+        # spot
         self.spot_light = self.render.attach_new_node(p3d.Spotlight('spot'))
         self.spot_light.node().set_color((1.0, 1.0, 1.0, 1.0))
         self.spot_light.node().set_shadow_caster(True, 1024, 1024)
@@ -120,10 +120,10 @@ class BaseApp(ShowBase):
 
 # run all the code
 if __name__ == "__main__":
-    p3d.load_prc_file_data('', 'win-size 1280 720')
-    p3d.load_prc_file_data('', 'multisamples 1')
-    p3d.load_prc_file_data('', 'show-frame-rate-meter 1')
-    p3d.load_prc_file_data('', 'sync-video 0')
+    p3d.load_prc_file_data('', '''win-size 1280 720')
+                                multisamples 1
+                                show-frame-rate-meter 1
+                                sync-video 0''')
 
     app=BaseApp()
     app.set_window_title('Panda3D - Hello World')

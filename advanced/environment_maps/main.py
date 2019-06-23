@@ -1,28 +1,28 @@
 '''
-This demo shows how to use panorama (equirectangular) environment maps.
-There are some sources online providing these kind of maps,
-(usually in .hdr format) like: https://hdrihaven.com/ or http://www.hdrlabs.com/sibl/archive.html
-Compared to cubemaps, they are easier to work with in image editing software,
-for one they have only one seam and are in one big file.
-Using them in shaders is a bit tricky and it's probably best to convert
-them into cubmaps.
-Cubmaps should be faster even if they take up more memory, there's a costly sqrt()
-and the uvs calculated in the fragment shader are bad for texture lookups.
+This demo shows how to use cube maps for
+-skyboxes
+-reflections
+-ambient lighting
 
-I avoid using the therm HDRI because that's often confused with HDR,
-there is no tone mapping in this demo, and the maps used are just 8bpp png
-(originally converted from 32bit floating point .hdr maps using GIMP)
+The cube maps used in this demo are made from equirectangular environment
+maps (hdri), but only use standard bit depth(8bpp), have a fuzzy blur
+applied to lower lods and are compressed using dxt1.
+
+You can check the 'utilities' folder to check the scpript used to make
+the cube maps.
 
 Instructions:
 - Press *SPACE* to change the environment map
 - Default mouse diver for camera movement
 '''
+import os
 import panda3d.core as p3d
 p3d.load_prc_file_data('', 'framebuffer-srgb 1')
 p3d.load_prc_file_data('', 'multisamples 1')
 from direct.showbase.ShowBase import ShowBase
 
 FT_LINEAR = p3d.SamplerState.FT_linear
+FT_NEAREST = p3d.SamplerState.FT_nearest
 FT_MIPMAP = p3d.SamplerState.FT_linear_mipmap_linear
 GLSL = p3d.Shader.SLGLSL
 F_SRGB =p3d.Texture.F_srgb
@@ -35,26 +35,27 @@ class App(ShowBase):
         #MSAA just for making thinkgs look good
         self.render.set_antialias(p3d.AntialiasAttrib.M_multisample)
 
+        self.env_maps=[]
+        for filename in os.listdir('../../models/texture/cubemap'):
+            self.env_maps.append('../../models/texture/cubemap/'+filename)
+        self.curren_env_map=0
         #the map_sky will be used for the skybox
         #the other one, blurred and at a lower resolution as the environment map
-        self.map_sky=self.loader.load_texture('../../models/texture/env/rustig_koppie_2k.png')
-        self.map_env=self.loader.load_texture('../../models/texture/env/rustig_koppie_blur.png',
-                                    minfilter = FT_MIPMAP,
-                                    magfilter = FT_LINEAR)
+        self.map_env=self.loader.load_texture(self.env_maps[0])
+
         #make sure it's sRGB
         if  p3d.ConfigVariableBool('framebuffer-srgb').get_value():
-            self.map_sky.set_format(F_SRGB)
             self.map_env.set_format(F_SRGB)
         #apply texture to render
         self.render.set_shader_input('env_map', self.map_env)
-        #camera pos is needed by the shaders
+         #camera pos is needed by the shaders
         self.render.set_shader_input("camera", self.cam)
         #load a model and do some setup
         model=self.loader.load_model('../../models/monkey')
         model.set_shader(p3d.Shader.load(GLSL, 'shaders/ibl_v.glsl', 'shaders/ibl_f.glsl'), 1)
         model.set_shader_input('roughness', 0.0)
         model.set_shader_input('metallic', 1.0)
-        model.set_shader_input('color', p3d.Vec3(0.7, 0.0, 0.025))
+        model.set_shader_input('color', p3d.Vec3(0.8, 0.8, 0.8))
         #copy it a few times
         monkeys=[model.copy_to(render) for _ in range(15)]
         #move and apply different values
@@ -74,7 +75,7 @@ class App(ShowBase):
         self.sky_box.reparent_to(self.render)
         self.sky_box.set_scale(10)
         self.sky_box.set_shader(p3d.Shader.load(GLSL, 'shaders/skybox_v.glsl', 'shaders/skybox_f.glsl'), 1)
-        self.sky_box.set_shader_input('sky_map', self.map_sky)
+        self.sky_box.set_shader_input('blur', 0.0)
         self.sky_box.set_bin('background', 100)
         self.sky_box.set_depth_test(False)
         self.sky_box.set_depth_write(False)
@@ -86,22 +87,13 @@ class App(ShowBase):
 
     def cycle_map(self):
         '''Change the environment map'''
-        if self.map_env.get_name() == 'rustig_koppie_blur':
-            self.map_sky=self.loader.load_texture('../../models/texture/env/parking_garage_2k.png')
-            self.map_env=self.loader.load_texture('../../models/texture/env/parking_garage_blur.png',
-                                    minfilter = FT_MIPMAP,
-                                    magfilter = FT_LINEAR)
-        else:
-            self.map_sky=self.loader.load_texture('../../models/texture/env/rustig_koppie_2k.png')
-            self.map_env=self.loader.load_texture('../../models/texture/env/rustig_koppie_blur.png',
-                                    minfilter = FT_MIPMAP,
-                                    magfilter = FT_LINEAR)
+        self.curren_env_map+=1
+        if self.curren_env_map >= len(self.env_maps):
+            self.curren_env_map=0
+        self.map_env=self.loader.load_texture(self.env_maps[self.curren_env_map])
         if  p3d.ConfigVariableBool('framebuffer-srgb').get_value():
-            self.map_sky.set_format(F_SRGB)
             self.map_env.set_format(F_SRGB)
-
         self.render.set_shader_input('env_map', self.map_env)
-        self.sky_box.set_shader_input('sky_map', self.map_sky)
 
     def update(self, task):
         ''' Per frame update task'''

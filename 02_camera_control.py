@@ -2,15 +2,15 @@
 This sample shows how to control the camera, and also how to:
 - respond to key events
 - using tasks
-- track and manipulate the mouse cursor
+- track the mouse cursor
 - configure keys using a .ini file
 - relative motion mumbo-jumbo
 '''
 import panda3d.core as p3d
-p3d.load_prc_file_data('', 'win-size 1280 720')
-p3d.load_prc_file_data('', 'multisamples 1')
-p3d.load_prc_file_data('', 'show-frame-rate-meter 1')
-p3d.load_prc_file_data('', 'sync-video 0')
+p3d.load_prc_file_data('', '''win-size 1280 720
+                            multisamples 1
+                            show-frame-rate-meter 1
+                            sync-video 0''')
 
 #we re use the code from tutorial_01
 #it sets up Panda3D, the scene, and lights
@@ -65,20 +65,39 @@ class App(BaseApp):
         # configuration file, .ini on the other hand are common in games
         key_config = configparser.ConfigParser()
         key_config.read('tutorial_02/keys.ini')
+        #we want mouse wheel to control zoom
+        # the way the mouse wheel works is just like a button
+        # it just fires the 'wheel_up' or 'wheel_down' events when the wheel is spun
+        # we will zoom in (or out) some amount whenever the wheel is moved
+        # self.zoom will tell us how much we still need to move and in what direction
+        # the actual moving of the camera will happen in the camera_update task
+        self.zoom = 0
+        #the 'accept' function tells the underlying DirectObject to listen to some event
+        # and run some function (method) when it happens
+        # in this case the event is "key_config['camera_zoom']['zoom_in']" - and that should be just
+        #"key_config['camera_zoom']['zoom_in']" should just be 'wheel_up'
+        # our function is 'self.zoom_control'
+        # the last argument is a list of ... em arguments passed to our function
+        # in other words:
+        # when a player spins the mouse wheel, panda3d will send a event named 'wheel_up'
+        # and our class will respond to it by calling 'self.zoom_control(1.0)'
+        self.accept(key_config['camera_zoom']['zoom_in'], self.zoom_control, [1.0] )
+        self.accept(key_config['camera_zoom']['zoom_out'], self.zoom_control, [-1.0] )
+        # for other keys we want to know if the player is holding down a key
         # self.key_down will be a dict that will have the names of events as keys
         # and True as the value if a key is pressed else False
         self.key_down={}
         for event, key in key_config['camera_keys'].items():
             self.key_down[event] = False
             self.accept(key, self.key_down.__setitem__, [event, True])
+            #the keys can me 'compound' like 'shift-mouse1' or 'alt-mouse1'
+            # the problem is - there is no -up event for such key-combos
+            # we will have to react just to the first key
+            # if we'd have a key bind on shift things would break :(
             if '-' in key:
                 self.accept(key.split('-')[0]+'-up', self.key_down.__setitem__, [event, False])
             else:
                 self.accept(key+'-up', self.key_down.__setitem__, [event, False])
-
-        self.zoom = 0
-        self.accept(key_config['camera_zoom']['zoom_in'], self.zoom_control, [1.0] )
-        self.accept(key_config['camera_zoom']['zoom_out'], self.zoom_control, [-1.0] )
         # we'll later check if this set None and skip moving the mouse
         # until we have a valid value
         self.last_mouse_pos = None
@@ -89,6 +108,7 @@ class App(BaseApp):
         # ...so we can use DirectObject methods like add_task()
         #The alternative is using taskMgr.add() and that's what
         # DirectObject is actually doing, but this is nicer (?)
+        #A task is simply a function called auto-magically each frame
         self.add_task(self.camera_update, 'camera_update')
 
     def zoom_control(self, amount):
@@ -97,6 +117,8 @@ class App(BaseApp):
     def camera_update(self, task):
         '''This function is a task run each frame,
            it controls the camera movement/rotation/zoom'''
+        #dt is 'delta time' - how much time elapsed since the last time the task ran
+        #we will use it to keep the motion independent from the framerate
         dt = globalClock.get_dt()
         #we'll be tracking the mouse
         #first we need to check if the cursor is in the window
@@ -111,16 +133,21 @@ class App(BaseApp):
             #and let's remember where it is this frame so we can
             #check next frame where it was
             self.last_mouse_pos = p3d.Vec2(mouse_pos)
+            #camera zoom
             if self.zoom != 0.0:
+                #let's see how far the camera is from the pivot point
                 distance=self.camera.get_distance(self.camera_node)
-                if (distance > self.zoom_limit[0] and self.zoom >0.0) or (distance < self.zoom_limit[1] and self.zoom < 0.0):
+                #we don't want it to be too close nor to far away
+                if (distance > self.zoom_limit[0] and self.zoom > 0.0) or \
+                   (distance < self.zoom_limit[1] and self.zoom < 0.0):
+                    #move the camera away or closer to the pivot point
+                    #we do that by moving the camera relative to itself
                     self.camera.set_y(self.camera, self.zoom*dt*self.camera_zoom_speed)
-                    if self.zoom > 0.1:
+
+                    if self.zoom >= 0.0:
                         self.zoom-=dt*self.camera_zoom_damping
-                    elif self.zoom < -0.1:
-                        self.zoom+=dt*self.camera_zoom_damping
                     else:
-                        self.zoom=0.0
+                        self.zoom+=dt*self.camera_zoom_damping
                 else:
                     self.zoom=0.0
             if self.key_down['rotate']:

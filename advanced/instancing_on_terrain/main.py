@@ -112,5 +112,24 @@ class App(ShowBase):
         grass_model.node().set_bounds( p3d.BoundingBox( (0,0,0), max( grass_list,key=itemgetter(1) ) ) )
         grass_model.node().set_final(1)
 
+         #make skybox
+        self.sky_box=self.loader.load_model('../../models//box')
+        self.sky_box.reparent_to(self.render)
+        self.sky_box.set_scale(10)
+        self.sky_box.set_shader(p3d.Shader.load(GLSL, 'shaders/skybox_v.glsl', 'shaders/skybox_f.glsl'), 1)
+        self.sky_box.set_shader_input('blur', 0.0)
+        self.sky_box.set_bin('background', 100)
+        self.sky_box.set_depth_test(False)
+        self.sky_box.set_depth_write(False)
+        self.render.set_shader_input("camera", self.cam)
+        self.render.set_shader_input('env_map', self.loader.load_texture('../../models/texture/cubemap/qwantani.txo'))
+        #add a task to update the skybox
+        self.taskMgr.add(self.update, 'update')
+
+    def update(self, task):
+        ''' Per frame update task'''
+        self.sky_box.set_pos(self.cam.get_pos(render))
+        return task.cont
+
 app=App()
 app.run()

@@ -9,5 +9,5 @@ out vec3 V;
 void main()
     {
     gl_Position = p3d_ModelViewProjectionMatrix * p3d_Vertex;
-    V=p3d_Vertex.xzy;
+    V=p3d_Vertex.xyz;
     }

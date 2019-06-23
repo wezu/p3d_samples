@@ -6,7 +6,7 @@
 in vec4 p3d_Vertex;
 uniform mat4 p3d_ModelViewProjectionMatrix;
 uniform mat4 p3d_ModelMatrix;
-
+uniform vec3 wspos_camera;
 uniform struct {
   sampler2D data_texture;
   sampler2D heightfield;
@@ -17,6 +17,7 @@ uniform struct {
 
 out vec2 terrain_uv;
 out vec3 vtx_pos;
+out vec3 view_vec;
 
 void main() {
 
@@ -53,4 +54,6 @@ void main() {
   // Output the vertex world space position - in this case we use this to render
   // the fog.
   vtx_pos = (p3d_ModelMatrix * vec4(chunk_position, 1)).xyz;
+
+  view_vec= vec3(p3d_ModelMatrix * vec4(chunk_position, 1) - vec4(wspos_camera, 1.0)).xyz;
 }
